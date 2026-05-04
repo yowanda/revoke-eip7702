@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <!-- Anti-clickjacking -->
-  <meta http-equiv="X-Frame-Options" content="DENY">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src *; frame-ancestors 'none'; form-action 'none'; base-uri 'self'">
+  <!-- Security -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src *; form-action 'none'; base-uri 'self'">
   <meta name="referrer" content="no-referrer">
   <title>EIP-7702 Revoke Tool</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha384-OwtfwhPoP4aGLIw192UbPWjNbSkb7AllEbIhEJ01Yp8MxhNLLNUMA+DSjh6Zct05" crossorigin="anonymous"></script>
@@ -835,23 +834,49 @@
   <div class="container">
     <header>
       <h1>EIP-7702 Revoke Tool</h1>
-      <p>Hapus delegasi drainer dari wallet Anda</p>
+      <p>Remove EIP-7702 drainer delegations from your wallet</p>
       <div class="security-badge">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/></svg>
-        100% Client-Side — Private key tidak pernah meninggalkan browser
+        100% Client-Side — Private keys never leave your browser
       </div>
     </header>
 
+    <!-- How to Use -->
+    <div class="card" style="border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04)">
+      <h2 style="color:var(--primary)">How It Works</h2>
+      <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.8">
+        <p style="margin-bottom:10px"><strong style="color:var(--text)">What is EIP-7702?</strong><br>
+        EIP-7702 allows an EOA (Externally Owned Account) to delegate code execution to a smart contract. If an attacker tricks you into signing an authorization, they can delegate your wallet to a drainer contract — which can automatically transfer all your assets out.</p>
+
+        <p style="margin-bottom:10px"><strong style="color:var(--text)">How does the attack work?</strong><br>
+        If you signed an authorization with <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.78rem">chainId = 0</code>, the delegation applies to <strong>all EVM chains at once</strong>. One signature can compromise your wallet across Ethereum, Optimism, Base, Arbitrum, Polygon, and more.</p>
+
+        <p style="margin-bottom:10px"><strong style="color:var(--text)">How does revoke work?</strong><br>
+        This tool sends a new EIP-7702 transaction that delegates your wallet to <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.78rem">address(0)</code> (zero address), which removes the drainer code and restores your wallet to a normal EOA.</p>
+
+        <p style="margin-bottom:6px"><strong style="color:var(--text)">Step-by-step:</strong></p>
+        <ol style="padding-left:18px;margin-bottom:10px">
+          <li>Enter your <strong>drained wallet's private key</strong> and a <strong>sponsor wallet's private key</strong> (to pay gas fees)</li>
+          <li>Select which chains to check — click <strong>"Check All Chain Delegations"</strong></li>
+          <li>Click <strong>"Estimate Gas Fee"</strong> to see exactly how much to send to your sponsor wallet</li>
+          <li>Fund the sponsor wallet with the estimated amount</li>
+          <li>Click <strong>"Revoke All Chains"</strong> to remove all drainer delegations</li>
+        </ol>
+
+        <p style="font-size:0.75rem;color:var(--text-muted)"><strong>Note:</strong> If your private key itself is compromised (not just the delegation), you should create a new wallet and transfer assets immediately after revoking. The attacker could re-delegate if they have your private key.</p>
+      </div>
+    </div>
+
     <div class="warning-box">
-      <strong>Peringatan:</strong> Pastikan Anda menjalankan ini di komputer pribadi yang aman. Jangan gunakan di komputer publik atau jaringan yang tidak terpercaya. Jika private key Anda juga bocor (bukan hanya delegasi EIP-7702), buat wallet baru setelah revoke.
+      <strong>Warning:</strong> Only use this tool on a secure, private device. Do not use on public computers or untrusted networks. If your private key is also compromised (not just the EIP-7702 delegation), create a new wallet after revoking.
     </div>
 
     <!-- Keys Input -->
     <div class="card">
-      <h2>1. Masukkan Private Keys</h2>
+      <h2>1. Enter Private Keys</h2>
 
       <div class="form-group">
-        <label>Private Key Wallet Terkena Drain (Wajib)</label>
+        <label>Private Key of Drained Wallet (Required)</label>
         <div class="input-wrapper">
           <input type="password" id="delegatorKey" placeholder="0x..." autocomplete="off" spellcheck="false">
           <button class="toggle-visibility" onclick="toggleVisibility('delegatorKey')">show</button>
@@ -860,7 +885,7 @@
       </div>
 
       <div class="form-group">
-        <label>Private Key Wallet Sponsor <span style="color:var(--text-muted)">(bayar gas — wajib jika wallet drain 0 ETH)</span></label>
+        <label>Sponsor Wallet Private Key <span style="color:var(--text-muted)">(pays gas fees — required if drained wallet has 0 ETH)</span></label>
         <div class="input-wrapper">
           <input type="password" id="sponsorKey" placeholder="0x..." autocomplete="off" spellcheck="false">
           <button class="toggle-visibility" onclick="toggleVisibility('sponsorKey')">show</button>
@@ -870,17 +895,17 @@
         <!-- Sponsor Wallet Generator -->
         <div class="sponsor-generator">
           <div class="gen-header">
-            <span class="gen-title">Belum punya wallet sponsor?</span>
-            <button class="btn-generate" onclick="generateSponsorWallet()">Generate Wallet Baru</button>
+            <span class="gen-title">Don't have a sponsor wallet?</span>
+            <button class="btn-generate" onclick="generateSponsorWallet()">Generate New Wallet</button>
           </div>
           <div class="generated-wallet" id="generatedWallet">
-            <div class="wallet-label">Address (kirim ETH/gas ke sini):</div>
+            <div class="wallet-label">Address (send ETH/gas tokens here):</div>
             <div class="wallet-row">
               <span class="wallet-value" id="genAddress"></span>
               <button class="btn-copy" onclick="copyText('genAddress')">Copy</button>
             </div>
 
-            <div class="wallet-label">Private Key (simpan dengan aman!):</div>
+            <div class="wallet-label">Private Key (keep this safe!):</div>
             <div class="wallet-row">
               <span class="wallet-value" id="genPrivKey" style="filter:blur(4px);cursor:pointer" onclick="this.style.filter=this.style.filter?'':'blur(4px)'"></span>
               <button class="btn-copy" onclick="copyText('genPrivKey')">Copy</button>
@@ -892,32 +917,32 @@
             </div>
 
             <div class="fund-notice">
-              <strong>Langkah:</strong><br>
-              1. Copy address di atas<br>
-              2. Klik "Estimasi Gas Fee" di section 4 untuk lihat jumlah pasti yang dibutuhkan<br>
-              3. Kirim jumlah tersebut ke address sponsor dari exchange/wallet lain<br>
-              4. Klik "Refresh" untuk cek balance<br>
-              5. Klik "Gunakan Wallet Ini" lalu revoke
+              <strong>Steps:</strong><br>
+              1. Copy the address above<br>
+              2. Click "Estimate Gas Fee" in section 4 to see the exact amount needed<br>
+              3. Send that amount to the sponsor address from your exchange or another wallet<br>
+              4. Click "Refresh" to check balance<br>
+              5. Click "Use This Wallet" then revoke
             </div>
 
-            <button class="btn-use-sponsor" onclick="useSponsorWallet()">Gunakan Wallet Ini Sebagai Sponsor</button>
+            <button class="btn-use-sponsor" onclick="useSponsorWallet()">Use This Wallet as Sponsor</button>
           </div>
         </div>
       </div>
 
       <div class="form-group">
-        <label>Custom RPC URL <span style="color:var(--text-muted)">(opsional — default: Flashbots/public RPC)</span></label>
+        <label>Custom RPC URL <span style="color:var(--text-muted)">(optional — default: Flashbots/public RPC)</span></label>
         <input type="text" id="customRpc" placeholder="https://eth-mainnet.g.alchemy.com/v2/YOUR-KEY" autocomplete="off">
-        <div class="hint">Hanya untuk Ethereum mainnet. Chain lain menggunakan public RPC.</div>
+        <div class="hint">For Ethereum mainnet only. Other chains use public RPCs.</div>
       </div>
     </div>
 
     <!-- Chain Selection -->
     <div class="card">
-      <h2>2. Pilih Chain</h2>
+      <h2>2. Select Chains</h2>
       <div class="select-all-row">
-        <button onclick="selectAll()">Pilih Semua</button>
-        <button onclick="deselectAll()">Hapus Semua</button>
+        <button onclick="selectAll()">Select All</button>
+        <button onclick="deselectAll()">Deselect All</button>
       </div>
       <div class="chain-grid" id="chainGrid"></div>
     </div>
@@ -925,10 +950,10 @@
     <!-- Quick Actions -->
     <div class="card">
       <h2>3. Quick Actions</h2>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Cek status delegasi atau revoke satu chain langsung:</p>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Check delegation status or revoke a single chain directly:</p>
       
       <button class="btn-quick btn-check" id="checkBtn" onclick="checkAllDelegations()" disabled>
-        Cek Delegasi Semua Chain
+        Check All Chain Delegations
       </button>
 
       <div class="delegation-status" id="delegationStatus" style="display:none"></div>
@@ -938,20 +963,20 @@
 
     <!-- Gas Estimation -->
     <div class="card">
-      <h2>4. Estimasi Gas Sponsor <span>(real-time)</span></h2>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Cek berapa gas yang dibutuhkan per chain sebelum kirim dana ke sponsor:</p>
-      <button class="btn-estimate" id="estimateBtn" onclick="estimateAllGas()" disabled>Estimasi Gas Fee Semua Chain</button>
+      <h2>4. Sponsor Gas Estimation <span>(real-time)</span></h2>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px">Check how much gas is needed per chain before sending funds to the sponsor:</p>
+      <button class="btn-estimate" id="estimateBtn" onclick="estimateAllGas()" disabled>Estimate Gas Fee for All Chains</button>
       <div id="gasTableContainer" style="display:none"></div>
       <div id="gasSummaryContainer" style="display:none"></div>
       <div class="gas-note" id="gasNote" style="display:none">
-        * Estimasi berdasarkan gas price saat ini + 30% buffer untuk keamanan.<br>
-        * Gas price bisa berubah — klik estimasi lagi sebelum kirim dana.
+        * Estimates based on current gas price + 30% safety buffer.<br>
+        * Gas prices fluctuate — click estimate again before sending funds.
       </div>
     </div>
 
     <!-- Action -->
     <div class="card">
-      <h2>5. Revoke Delegasi</h2>
+      <h2>5. Revoke Delegation</h2>
       <button class="btn btn-primary" id="revokeBtn" onclick="startRevoke()" disabled>
         Revoke All Chains
       </button>
@@ -992,7 +1017,7 @@
 
     // Auto-reload when a new version is deployed
     (function() {
-      var APP_VERSION = '20260504v4';
+      var APP_VERSION = '20260504v5';
       var VERSION_KEY = 'eip7702_app_version';
       var stored = localStorage.getItem(VERSION_KEY);
       if (stored && stored !== APP_VERSION) {
