@@ -38,6 +38,46 @@ If the authorization is signed with `chainId = 0`, the delegation applies to **a
 
 This tool sends a new EIP-7702 transaction that delegates the wallet to `address(0)` (zero address). This removes the delegation code from the wallet and restores it to a regular EOA.
 
+## Proof: 100% Client-Side (Verify It Yourself)
+
+This tool makes **zero requests to any backend server**. Your private keys never leave your browser. Here's how you can verify:
+
+### 1. Check Network Requests (Easiest)
+1. Open the tool in your browser
+2. Press **F12** → go to the **Network** tab
+3. Use the tool normally (enter keys, check delegations, revoke)
+4. **Every single request** will go to blockchain RPC endpoints only:
+   - `rpc.flashbots.net` (Ethereum)
+   - `mainnet.base.org` (Base)
+   - `arb1.arbitrum.io/rpc` (Arbitrum)
+   - `mainnet.optimism.io` (Optimism)
+   - `polygon-bor-rpc.publicnode.com` (Polygon)
+   - `bsc-dataseed.binance.org` (BNB)
+   - `api.avax.network/ext/bc/C/rpc` (Avalanche)
+5. **You will NOT see** any request to unknown servers, analytics, or APIs
+
+### 2. Run Offline
+1. Save the page (Ctrl+S or download `index.html`)
+2. **Disconnect your internet**
+3. Open the saved file in your browser
+4. The UI will load and function — keys are processed locally
+5. Only RPC calls (checking delegation, sending transactions) require internet
+
+### 3. Inspect the Source Code
+1. Right-click → **"View Page Source"**
+2. There is **no `fetch()` or `XMLHttpRequest`** to any server other than blockchain RPCs
+3. All wallet operations use `ethers.js` which runs entirely in-browser
+4. The `ethers.js` library is loaded from a CDN with **SRI (Subresource Integrity)** hash verification — if the CDN file is tampered with, your browser will refuse to load it
+
+### 4. Content Security Policy (CSP)
+The page includes a strict CSP that only allows:
+- Scripts from `self` and `cdnjs.cloudflare.com` (ethers.js CDN)
+- Connections (`connect-src`) to any RPC endpoint
+- **No external server communication is possible** outside these rules
+
+### 5. Single HTML File
+The entire application is **one HTML file** — no hidden backend, no server-side processing, no database. What you see in the source is everything that runs.
+
 ## Security
 
 - **Never share your private key with anyone**
