@@ -6,8 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <!-- Anti-clickjacking -->
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src *; frame-ancestors 'none'; form-action 'none'; base-uri 'self'">
+  <meta name="referrer" content="no-referrer">
   <title>EIP-7702 Revoke Tool</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js" integrity="sha384-OwtfwhPoP4aGLIw192UbPWjNbSkb7AllEbIhEJ01Yp8MxhNLLNUMA+DSjh6Zct05" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg: #0a0a0f;
@@ -988,7 +992,7 @@
 
     // Auto-reload when a new version is deployed
     (function() {
-      var APP_VERSION = '20260504v3';
+      var APP_VERSION = '20260504v4';
       var VERSION_KEY = 'eip7702_app_version';
       var stored = localStorage.getItem(VERSION_KEY);
       if (stored && stored !== APP_VERSION) {
@@ -998,6 +1002,89 @@
         localStorage.setItem(VERSION_KEY, APP_VERSION);
       }
     })();
+  </script>
+
+  <script>
+    // === SECURITY HARDENING ===
+
+    // Anti-clickjacking: break out of iframes
+    if (window.self !== window.top) {
+      document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:40vh">BLOCKED: This page cannot be loaded in an iframe.</h1>';
+      window.top.location = window.self.location;
+    }
+
+    // Anti-link-hijack: validate all external links and block suspicious ones
+    document.addEventListener('click', function(e) {
+      var link = e.target.closest('a[href]');
+      if (!link) return;
+      var href = link.getAttribute('href');
+      if (!href) return;
+      // Block javascript: protocol
+      if (href.toLowerCase().trim().startsWith('javascript:')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      // Block data: protocol links
+      if (href.toLowerCase().trim().startsWith('data:')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      // Only allow https links for external navigation
+      if (href.startsWith('http') && !href.startsWith('https://')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }, true);
+
+    // Disable drag-and-drop to prevent content injection
+    document.addEventListener('dragstart', function(e) { e.preventDefault(); });
+    document.addEventListener('drop', function(e) { e.preventDefault(); });
+
+    // Prevent paste of HTML into input fields (only allow plain text)
+    document.addEventListener('paste', function(e) {
+      var target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        // Strip non-hex chars for private key fields
+        if (target.id === 'delegatorKey' || target.id === 'sponsorKey') {
+          text = text.trim();
+          if (!/^0x[0-9a-fA-F]{64}$/.test(text)) {
+            if (/^[0-9a-fA-F]{64}$/.test(text)) text = '0x' + text;
+          }
+        }
+        target.value = text;
+        target.dispatchEvent(new Event('input', {bubbles: true}));
+      }
+    });
+
+    // Monitor for DOM tampering
+    if (window.MutationObserver) {
+      var securityObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          m.addedNodes.forEach(function(node) {
+            // Remove injected scripts
+            if (node.nodeName === 'SCRIPT' && !node.src.includes('cdnjs.cloudflare.com') && !node.hasAttribute('data-app')) {
+              node.remove();
+            }
+            // Remove injected iframes
+            if (node.nodeName === 'IFRAME') {
+              node.remove();
+            }
+          });
+        });
+      });
+      securityObserver.observe(document.documentElement, {childList: true, subtree: true});
+    }
+
+    // Freeze critical globals to prevent prototype pollution
+    if (Object.freeze) {
+      Object.freeze(Object.prototype);
+      Object.freeze(Array.prototype);
+    }
   </script>
 </body>
 </html>
